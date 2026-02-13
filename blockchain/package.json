@@ -1,0 +1,13 @@
+{
+  "name": "eviblock-blockchain",
+  "version": "1.0.0",
+  "description": "Blockchain layer for Eviblock",
+  "scripts": {
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0",
+    "dotenv": "^16.4.5"
+  }
+}
