@@ -1,26 +1,30 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  // 1. Get the contract factory
-  // This is like a "blueprint" for creating instances of our contract
-  const EvidenceRegistry = await ethers.getContractFactory("EvidenceRegistry");
+  // 1. Get the list of fake accounts provided by Hardhat
+  const signers = await ethers.getSigners();
+  
+  // 2. Select the SECOND account (index 1) to bypass the default address
+  const alternateDeployer = signers[1];
+  console.log(`Deploying using alternate account: ${alternateDeployer.address}`);
 
-  // 2. Deploy the contract
+  // 3. Attach this new deployer to our contract factory
+  const EvidenceRegistry = await ethers.getContractFactory(
+    "EvidenceRegistry", 
+    alternateDeployer
+  );
+
+  // 4. Deploy the contract
   console.log("Deploying EvidenceRegistry...");
   const evidenceRegistry = await EvidenceRegistry.deploy();
-
-  // 3. Wait for the deployment to finish
   await evidenceRegistry.waitForDeployment();
 
-  // 4. Log the address
-  // This address is crucial - it's where our contract lives on the blockchain
+  // 5. Log the new, clean address
   console.log(
     `EvidenceRegistry deployed to: ${await evidenceRegistry.getAddress()}`
   );
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
