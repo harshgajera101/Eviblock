@@ -4,14 +4,14 @@ async function main() {
   // 1. Get the list of fake accounts provided by Hardhat
   const signers = await ethers.getSigners();
   
-  // 2. Select the SECOND account (index 1) to bypass the default address
-  const alternateDeployer = signers[1];
-  console.log(`Deploying using alternate account: ${alternateDeployer.address}`);
+  // 2. Select the FIRST account (index 0) which is your 0xf39f... wallet
+  const mainDeployer = signers[0];
+  console.log(`Deploying using main account: ${mainDeployer.address}`);
 
-  // 3. Attach this new deployer to our contract factory
+  // 3. Attach this deployer to our contract factory
   const EvidenceRegistry = await ethers.getContractFactory(
     "EvidenceRegistry", 
-    alternateDeployer
+    mainDeployer
   );
 
   // 4. Deploy the contract

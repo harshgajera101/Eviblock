@@ -51,15 +51,16 @@ export interface EvidenceRegistryInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "addEvidence"
-      | "evidenceCount"
-      | "evidenceRecords"
+      | "checkIsInvestigator"
       | "getAllEvidence"
-      | "getEvidence"
-      | "verifyEvidence"
+      | "grantInvestigator"
+      | "investigators"
+      | "revokeInvestigator"
+      | "superAdmin"
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "EvidenceAdded" | "EvidenceVerified"
+    nameOrSignatureOrTopic: "EvidenceAdded" | "RoleGranted" | "RoleRevoked"
   ): EventFragment;
 
   encodeFunctionData(
@@ -67,24 +68,28 @@ export interface EvidenceRegistryInterface extends Interface {
     values: [string, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "evidenceCount",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "evidenceRecords",
-    values: [BigNumberish]
+    functionFragment: "checkIsInvestigator",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getAllEvidence",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "getEvidence",
-    values: [BigNumberish]
+    functionFragment: "grantInvestigator",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "verifyEvidence",
-    values: [BigNumberish, string]
+    functionFragment: "investigators",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "revokeInvestigator",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "superAdmin",
+    values?: undefined
   ): string;
 
   decodeFunctionResult(
@@ -92,11 +97,7 @@ export interface EvidenceRegistryInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "evidenceCount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "evidenceRecords",
+    functionFragment: "checkIsInvestigator",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -104,30 +105,38 @@ export interface EvidenceRegistryInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getEvidence",
+    functionFragment: "grantInvestigator",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "verifyEvidence",
+    functionFragment: "investigators",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "revokeInvestigator",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "superAdmin", data: BytesLike): Result;
 }
 
 export namespace EvidenceAddedEvent {
   export type InputTuple = [
     evidenceId: BigNumberish,
-    uploader: AddressLike,
-    fileHash: string
+    ipfsHash: string,
+    fileHash: string,
+    uploader: AddressLike
   ];
   export type OutputTuple = [
     evidenceId: bigint,
-    uploader: string,
-    fileHash: string
+    ipfsHash: string,
+    fileHash: string,
+    uploader: string
   ];
   export interface OutputObject {
     evidenceId: bigint;
-    uploader: string;
+    ipfsHash: string;
     fileHash: string;
+    uploader: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -135,12 +144,25 @@ export namespace EvidenceAddedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace EvidenceVerifiedEvent {
-  export type InputTuple = [evidenceId: BigNumberish, isVerified: boolean];
-  export type OutputTuple = [evidenceId: bigint, isVerified: boolean];
+export namespace RoleGrantedEvent {
+  export type InputTuple = [role: string, account: AddressLike];
+  export type OutputTuple = [role: string, account: string];
   export interface OutputObject {
-    evidenceId: bigint;
-    isVerified: boolean;
+    role: string;
+    account: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleRevokedEvent {
+  export type InputTuple = [role: string, account: AddressLike];
+  export type OutputTuple = [role: string, account: string];
+  export interface OutputObject {
+    role: string;
+    account: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -197,19 +219,9 @@ export interface EvidenceRegistry extends BaseContract {
     "nonpayable"
   >;
 
-  evidenceCount: TypedContractMethod<[], [bigint], "view">;
-
-  evidenceRecords: TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [bigint, string, string, string, bigint] & {
-        evidenceId: bigint;
-        ipfsHash: string;
-        fileHash: string;
-        uploader: string;
-        timestamp: bigint;
-      }
-    ],
+  checkIsInvestigator: TypedContractMethod<
+    [_account: AddressLike],
+    [boolean],
     "view"
   >;
 
@@ -219,17 +231,21 @@ export interface EvidenceRegistry extends BaseContract {
     "view"
   >;
 
-  getEvidence: TypedContractMethod<
-    [_evidenceId: BigNumberish],
-    [EvidenceRegistry.EvidenceStructOutput],
-    "view"
-  >;
-
-  verifyEvidence: TypedContractMethod<
-    [_evidenceId: BigNumberish, _fileHash: string],
-    [boolean],
+  grantInvestigator: TypedContractMethod<
+    [_account: AddressLike],
+    [void],
     "nonpayable"
   >;
+
+  investigators: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  revokeInvestigator: TypedContractMethod<
+    [_account: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  superAdmin: TypedContractMethod<[], [string], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -243,40 +259,23 @@ export interface EvidenceRegistry extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "evidenceCount"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "evidenceRecords"
-  ): TypedContractMethod<
-    [arg0: BigNumberish],
-    [
-      [bigint, string, string, string, bigint] & {
-        evidenceId: bigint;
-        ipfsHash: string;
-        fileHash: string;
-        uploader: string;
-        timestamp: bigint;
-      }
-    ],
-    "view"
-  >;
+    nameOrSignature: "checkIsInvestigator"
+  ): TypedContractMethod<[_account: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "getAllEvidence"
   ): TypedContractMethod<[], [EvidenceRegistry.EvidenceStructOutput[]], "view">;
   getFunction(
-    nameOrSignature: "getEvidence"
-  ): TypedContractMethod<
-    [_evidenceId: BigNumberish],
-    [EvidenceRegistry.EvidenceStructOutput],
-    "view"
-  >;
+    nameOrSignature: "grantInvestigator"
+  ): TypedContractMethod<[_account: AddressLike], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "verifyEvidence"
-  ): TypedContractMethod<
-    [_evidenceId: BigNumberish, _fileHash: string],
-    [boolean],
-    "nonpayable"
-  >;
+    nameOrSignature: "investigators"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "revokeInvestigator"
+  ): TypedContractMethod<[_account: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "superAdmin"
+  ): TypedContractMethod<[], [string], "view">;
 
   getEvent(
     key: "EvidenceAdded"
@@ -286,15 +285,22 @@ export interface EvidenceRegistry extends BaseContract {
     EvidenceAddedEvent.OutputObject
   >;
   getEvent(
-    key: "EvidenceVerified"
+    key: "RoleGranted"
   ): TypedContractEvent<
-    EvidenceVerifiedEvent.InputTuple,
-    EvidenceVerifiedEvent.OutputTuple,
-    EvidenceVerifiedEvent.OutputObject
+    RoleGrantedEvent.InputTuple,
+    RoleGrantedEvent.OutputTuple,
+    RoleGrantedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoleRevoked"
+  ): TypedContractEvent<
+    RoleRevokedEvent.InputTuple,
+    RoleRevokedEvent.OutputTuple,
+    RoleRevokedEvent.OutputObject
   >;
 
   filters: {
-    "EvidenceAdded(uint256,address,string)": TypedContractEvent<
+    "EvidenceAdded(uint256,string,string,address)": TypedContractEvent<
       EvidenceAddedEvent.InputTuple,
       EvidenceAddedEvent.OutputTuple,
       EvidenceAddedEvent.OutputObject
@@ -305,15 +311,26 @@ export interface EvidenceRegistry extends BaseContract {
       EvidenceAddedEvent.OutputObject
     >;
 
-    "EvidenceVerified(uint256,bool)": TypedContractEvent<
-      EvidenceVerifiedEvent.InputTuple,
-      EvidenceVerifiedEvent.OutputTuple,
-      EvidenceVerifiedEvent.OutputObject
+    "RoleGranted(string,address)": TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
     >;
-    EvidenceVerified: TypedContractEvent<
-      EvidenceVerifiedEvent.InputTuple,
-      EvidenceVerifiedEvent.OutputTuple,
-      EvidenceVerifiedEvent.OutputObject
+    RoleGranted: TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
+    >;
+
+    "RoleRevoked(string,address)": TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
+    >;
+    RoleRevoked: TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
     >;
   };
 }
