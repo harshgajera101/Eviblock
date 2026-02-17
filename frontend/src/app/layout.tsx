@@ -19,6 +19,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Eviblock | Immutable Evidence Chain",
   description: "Decentralized digital evidence integrity system.",
+  applicationName: "Eviblock",
+  themeColor: "#0F172A", // Matches your Navy Blue background
 };
 
 export default function RootLayout({
