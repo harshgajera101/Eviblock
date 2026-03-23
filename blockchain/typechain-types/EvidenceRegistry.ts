@@ -45,27 +45,70 @@ export declare namespace EvidenceRegistry {
     uploader: string;
     timestamp: bigint;
   };
+
+  export type PendingRecordStruct = {
+    pendingId: BigNumberish;
+    ipfsHash: string;
+    fileHash: string;
+    proposer: AddressLike;
+    timestamp: BigNumberish;
+    approvals: BigNumberish;
+    finalized: boolean;
+  };
+
+  export type PendingRecordStructOutput = [
+    pendingId: bigint,
+    ipfsHash: string,
+    fileHash: string,
+    proposer: string,
+    timestamp: bigint,
+    approvals: bigint,
+    finalized: boolean
+  ] & {
+    pendingId: bigint;
+    ipfsHash: string;
+    fileHash: string;
+    proposer: string;
+    timestamp: bigint;
+    approvals: bigint;
+    finalized: boolean;
+  };
 }
 
 export interface EvidenceRegistryInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "addEvidence"
+      | "approveEvidence"
       | "checkIsInvestigator"
       | "getAllEvidence"
+      | "getPendingEvidence"
       | "grantInvestigator"
+      | "hasApproved"
       | "investigators"
+      | "pendingCount"
+      | "pendingRecords"
+      | "proposeEvidence"
       | "revokeInvestigator"
       | "superAdmin"
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "EvidenceAdded" | "RoleGranted" | "RoleRevoked"
+    nameOrSignatureOrTopic:
+      | "EvidenceAdded"
+      | "EvidenceApproved"
+      | "EvidenceProposed"
+      | "RoleGranted"
+      | "RoleRevoked"
   ): EventFragment;
 
   encodeFunctionData(
     functionFragment: "addEvidence",
     values: [string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "approveEvidence",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "checkIsInvestigator",
@@ -76,12 +119,32 @@ export interface EvidenceRegistryInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "getPendingEvidence",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "grantInvestigator",
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "hasApproved",
+    values: [BigNumberish, AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "investigators",
     values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "pendingCount",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "pendingRecords",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proposeEvidence",
+    values: [string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "revokeInvestigator",
@@ -97,6 +160,10 @@ export interface EvidenceRegistryInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "approveEvidence",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "checkIsInvestigator",
     data: BytesLike
   ): Result;
@@ -105,11 +172,31 @@ export interface EvidenceRegistryInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getPendingEvidence",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "grantInvestigator",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "hasApproved",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "investigators",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "pendingCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "pendingRecords",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "proposeEvidence",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -137,6 +224,53 @@ export namespace EvidenceAddedEvent {
     ipfsHash: string;
     fileHash: string;
     uploader: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace EvidenceApprovedEvent {
+  export type InputTuple = [
+    pendingId: BigNumberish,
+    approver: AddressLike,
+    currentApprovals: BigNumberish
+  ];
+  export type OutputTuple = [
+    pendingId: bigint,
+    approver: string,
+    currentApprovals: bigint
+  ];
+  export interface OutputObject {
+    pendingId: bigint;
+    approver: string;
+    currentApprovals: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace EvidenceProposedEvent {
+  export type InputTuple = [
+    pendingId: BigNumberish,
+    ipfsHash: string,
+    fileHash: string,
+    proposer: AddressLike
+  ];
+  export type OutputTuple = [
+    pendingId: bigint,
+    ipfsHash: string,
+    fileHash: string,
+    proposer: string
+  ];
+  export interface OutputObject {
+    pendingId: bigint;
+    ipfsHash: string;
+    fileHash: string;
+    proposer: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -219,6 +353,12 @@ export interface EvidenceRegistry extends BaseContract {
     "nonpayable"
   >;
 
+  approveEvidence: TypedContractMethod<
+    [_pendingId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   checkIsInvestigator: TypedContractMethod<
     [_account: AddressLike],
     [boolean],
@@ -231,13 +371,49 @@ export interface EvidenceRegistry extends BaseContract {
     "view"
   >;
 
+  getPendingEvidence: TypedContractMethod<
+    [],
+    [EvidenceRegistry.PendingRecordStructOutput[]],
+    "view"
+  >;
+
   grantInvestigator: TypedContractMethod<
     [_account: AddressLike],
     [void],
     "nonpayable"
   >;
 
+  hasApproved: TypedContractMethod<
+    [arg0: BigNumberish, arg1: AddressLike],
+    [boolean],
+    "view"
+  >;
+
   investigators: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  pendingCount: TypedContractMethod<[], [bigint], "view">;
+
+  pendingRecords: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, string, string, string, bigint, bigint, boolean] & {
+        pendingId: bigint;
+        ipfsHash: string;
+        fileHash: string;
+        proposer: string;
+        timestamp: bigint;
+        approvals: bigint;
+        finalized: boolean;
+      }
+    ],
+    "view"
+  >;
+
+  proposeEvidence: TypedContractMethod<
+    [_ipfsHash: string, _fileHash: string],
+    [void],
+    "nonpayable"
+  >;
 
   revokeInvestigator: TypedContractMethod<
     [_account: AddressLike],
@@ -259,17 +435,61 @@ export interface EvidenceRegistry extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "approveEvidence"
+  ): TypedContractMethod<[_pendingId: BigNumberish], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "checkIsInvestigator"
   ): TypedContractMethod<[_account: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "getAllEvidence"
   ): TypedContractMethod<[], [EvidenceRegistry.EvidenceStructOutput[]], "view">;
   getFunction(
+    nameOrSignature: "getPendingEvidence"
+  ): TypedContractMethod<
+    [],
+    [EvidenceRegistry.PendingRecordStructOutput[]],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "grantInvestigator"
   ): TypedContractMethod<[_account: AddressLike], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "hasApproved"
+  ): TypedContractMethod<
+    [arg0: BigNumberish, arg1: AddressLike],
+    [boolean],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "investigators"
   ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "pendingCount"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "pendingRecords"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, string, string, string, bigint, bigint, boolean] & {
+        pendingId: bigint;
+        ipfsHash: string;
+        fileHash: string;
+        proposer: string;
+        timestamp: bigint;
+        approvals: bigint;
+        finalized: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "proposeEvidence"
+  ): TypedContractMethod<
+    [_ipfsHash: string, _fileHash: string],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "revokeInvestigator"
   ): TypedContractMethod<[_account: AddressLike], [void], "nonpayable">;
@@ -283,6 +503,20 @@ export interface EvidenceRegistry extends BaseContract {
     EvidenceAddedEvent.InputTuple,
     EvidenceAddedEvent.OutputTuple,
     EvidenceAddedEvent.OutputObject
+  >;
+  getEvent(
+    key: "EvidenceApproved"
+  ): TypedContractEvent<
+    EvidenceApprovedEvent.InputTuple,
+    EvidenceApprovedEvent.OutputTuple,
+    EvidenceApprovedEvent.OutputObject
+  >;
+  getEvent(
+    key: "EvidenceProposed"
+  ): TypedContractEvent<
+    EvidenceProposedEvent.InputTuple,
+    EvidenceProposedEvent.OutputTuple,
+    EvidenceProposedEvent.OutputObject
   >;
   getEvent(
     key: "RoleGranted"
@@ -309,6 +543,28 @@ export interface EvidenceRegistry extends BaseContract {
       EvidenceAddedEvent.InputTuple,
       EvidenceAddedEvent.OutputTuple,
       EvidenceAddedEvent.OutputObject
+    >;
+
+    "EvidenceApproved(uint256,address,uint256)": TypedContractEvent<
+      EvidenceApprovedEvent.InputTuple,
+      EvidenceApprovedEvent.OutputTuple,
+      EvidenceApprovedEvent.OutputObject
+    >;
+    EvidenceApproved: TypedContractEvent<
+      EvidenceApprovedEvent.InputTuple,
+      EvidenceApprovedEvent.OutputTuple,
+      EvidenceApprovedEvent.OutputObject
+    >;
+
+    "EvidenceProposed(uint256,string,string,address)": TypedContractEvent<
+      EvidenceProposedEvent.InputTuple,
+      EvidenceProposedEvent.OutputTuple,
+      EvidenceProposedEvent.OutputObject
+    >;
+    EvidenceProposed: TypedContractEvent<
+      EvidenceProposedEvent.InputTuple,
+      EvidenceProposedEvent.OutputTuple,
+      EvidenceProposedEvent.OutputObject
     >;
 
     "RoleGranted(string,address)": TypedContractEvent<
