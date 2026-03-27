@@ -1,30 +1,35 @@
 // "use client";
 
 // import { useState, useEffect } from "react";
-// import { ShieldCheck, Database, Lock, Clock, Fingerprint, Loader2, AlertTriangle, ExternalLink, Link as LinkIcon, Globe, FolderLock, Key, X, Unlock, FileImage, Eye, CheckCircle } from "lucide-react";
+// import { ShieldCheck, Database, Lock, Clock, Fingerprint, Loader2, AlertTriangle, ExternalLink, Link as LinkIcon, Globe, FolderLock, Key, X, Unlock, FileImage, Eye, CheckCircle, Users, PenTool } from "lucide-react";
 // import { getContract } from "../../utils/ethereum";
 // import CryptoJS from "crypto-js";
 
 // interface EvidenceRecord {
-//   evidenceId: number;
+//   evidenceId?: number; 
+//   pendingId?: number;  
 //   ipfsHash: string;
 //   fileHash: string;
-//   uploader: string;
+//   uploader?: string;   
+//   proposer?: string;   
 //   timestamp: number;
 // }
 
 // export default function DashboardPage() {
 //   const [records, setRecords] = useState<EvidenceRecord[]>([]);
+//   const [pendingRecords, setPendingRecords] = useState<EvidenceRecord[]>([]); 
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState("");
 //   const [walletAddress, setWalletAddress] = useState<string>("");
-//   const [activeTab, setActiveTab] = useState<"global" | "mine">("global");
+//   const [activeTab, setActiveTab] = useState<"global" | "mine" | "pending">("global");
 
 //   const [selectedRecord, setSelectedRecord] = useState<EvidenceRecord | null>(null);
 //   const [decryptKey, setDecryptKey] = useState<string>("");
 //   const [decryptStatus, setDecryptStatus] = useState<"idle" | "fetching" | "decrypting" | "success" | "error">("idle");
 //   const [decryptError, setDecryptError] = useState<string>("");
 //   const [decryptedDataUrl, setDecryptedDataUrl] = useState<string>("");
+  
+//   const [approvingId, setApprovingId] = useState<number | null>(null);
 
 //   useEffect(() => {
 //     fetchEvidence();
@@ -68,7 +73,6 @@
 //       }
 
 //       const data = await contract.getAllEvidence();
-      
 //       const formattedData = data.map((item: any) => ({
 //         evidenceId: Number(item.evidenceId),
 //         ipfsHash: item.ipfsHash,
@@ -77,12 +81,42 @@
 //         timestamp: Number(item.timestamp),
 //       })).reverse(); 
 
+//       // 2. Fetch Pending Ledger (Phase 5)
+//       const pendingData = await (contract as any).getPendingEvidence();
+//       const formattedPending = pendingData.map((item: any) => ({
+//         pendingId: Number(item.pendingId),
+//         ipfsHash: item.ipfsHash,
+//         fileHash: item.fileHash,
+//         proposer: item.proposer,
+//         timestamp: Number(item.timestamp),
+//       })).reverse();
+
 //       setRecords(formattedData);
+//       setPendingRecords(formattedPending);
 //       setLoading(false);
 //     } catch (err: any) {
 //       console.error("Error fetching evidence:", err);
 //       setError("Failed to load evidence records from the blockchain. Make sure your local node is running.");
 //       setLoading(false);
+//     }
+//   };
+
+//   const handleApprove = async (pendingId: number) => {
+//     setApprovingId(pendingId);
+//     try {
+//       const contract = await getContract();
+//       // --- TS FIX: Ensure contract exists before calling methods ---
+//       if (!contract) throw new Error("Smart contract connection failed.");
+      
+//       const transaction = await (contract as any).approveEvidence(pendingId);
+//       await transaction.wait();
+      
+//       await fetchEvidence();
+//       setApprovingId(null);
+//     } catch (err: any) {
+//       console.error("Failed to approve:", err);
+//       alert("Transaction failed. You must be an authorized Investigator, and you cannot co-sign your own proposal.");
+//       setApprovingId(null);
 //     }
 //   };
 
@@ -93,9 +127,12 @@
 //     });
 //   };
 
-//   const displayedRecords = activeTab === "mine" 
-//     ? records.filter(record => record.uploader.toLowerCase() === walletAddress)
-//     : records;
+//   let displayedRecords = records;
+//   if (activeTab === "mine") {
+//     displayedRecords = records.filter(record => record.uploader?.toLowerCase() === walletAddress);
+//   } else if (activeTab === "pending") {
+//     displayedRecords = pendingRecords;
+//   }
 
 //   const handleDecrypt = async () => {
 //     if (!selectedRecord || !decryptKey) return;
@@ -164,23 +201,24 @@
 //         </div>
 //       </div>
 
-//       <div className="flex flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
+//       <div className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8">
 //         <button
 //           onClick={() => setActiveTab("global")}
-//           className={`flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-mono text-xs sm:text-sm transition-all duration-200 active:scale-[0.98] ${
+//           className={`flex-1 sm:flex-none flex justify-center items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg font-mono text-xs sm:text-sm transition-all duration-200 active:scale-[0.98] ${
 //             activeTab === "global" 
 //               ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" 
 //               : "bg-slate-900/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800"
 //           }`}
 //         >
 //           <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-//           Global Ledger
+//           <span className="hidden sm:inline">Global Ledger</span>
+//           <span className="sm:hidden">Global</span>
 //         </button>
         
 //         <button
 //           onClick={() => setActiveTab("mine")}
 //           disabled={!walletAddress}
-//           className={`flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-mono text-xs sm:text-sm transition-all duration-200 active:scale-[0.98] ${
+//           className={`flex-1 sm:flex-none flex justify-center items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg font-mono text-xs sm:text-sm transition-all duration-200 active:scale-[0.98] ${
 //             activeTab === "mine" 
 //               ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]" 
 //               : !walletAddress 
@@ -190,7 +228,20 @@
 //           title={!walletAddress ? "Connect wallet to view your evidence" : ""}
 //         >
 //           <FolderLock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-//           My Evidence
+//           <span className="hidden sm:inline">My Evidence</span>
+//           <span className="sm:hidden">Mine</span>
+//         </button>
+
+//         <button
+//           onClick={() => setActiveTab("pending")}
+//           className={`flex-1 sm:flex-none flex justify-center items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg font-mono text-xs sm:text-sm transition-all duration-200 active:scale-[0.98] ${
+//             activeTab === "pending" 
+//               ? "bg-amber-600 text-white shadow-[0_0_15px_rgba(217,119,6,0.3)] border-amber-500" 
+//               : "bg-slate-900/50 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800"
+//           }`}
+//         >
+//           <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+//           <span>Pending ({pendingRecords.length})</span>
 //         </button>
 //       </div>
 
@@ -211,6 +262,8 @@
 //           <p className="text-slate-400 text-xs sm:text-sm max-w-md mx-auto leading-relaxed px-4">
 //             {activeTab === "mine" 
 //               ? "You haven't uploaded any evidence with this wallet address yet." 
+//               : activeTab === "pending"
+//               ? "No evidence is currently awaiting a co-signature."
 //               : "The blockchain ledger is currently empty."}
 //           </p>
 //         </div>
@@ -219,20 +272,33 @@
 //           {displayedRecords.map((record) => {
 //             const isEncrypted = record.fileHash.startsWith("ENC|");
 //             const displayHash = isEncrypted ? record.fileHash.replace("ENC|", "") : record.fileHash;
+            
+//             const isPendingTab = activeTab === "pending";
+//             const displayId = isPendingTab ? record.pendingId : record.evidenceId;
+//             const displayWallet = isPendingTab ? record.proposer : record.uploader;
+//             const isUserProposer = isPendingTab && record.proposer?.toLowerCase() === walletAddress;
 
 //             return (
-//               <div key={record.evidenceId} className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 sm:p-6 shadow-lg hover:border-blue-500/30 hover:shadow-[0_0_15px_rgba(37,99,235,0.05)] transition-all duration-300 group relative overflow-hidden">
+//               <div key={displayId} className={`bg-slate-900/40 border ${isPendingTab ? 'border-amber-900/50 hover:border-amber-500/30' : 'border-slate-800 hover:border-blue-500/30'} rounded-xl p-4 sm:p-6 shadow-lg transition-all duration-300 group relative overflow-hidden`}>
 //                 <div className="flex flex-col lg:flex-row justify-between gap-5 sm:gap-6 relative z-10">
                   
 //                   {/* Left side: ID and Hashes */}
 //                   <div className="flex-grow space-y-3 sm:space-y-4">
 //                     <div className="flex flex-wrap items-center gap-2 sm:gap-4">
 //                       <span className="bg-slate-800 text-slate-300 px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-mono font-bold border border-slate-700">
-//                         ID: #{record.evidenceId}
+//                         {isPendingTab ? 'PENDING ID:' : 'ID:'} #{displayId}
 //                       </span>
-//                       <span className="flex items-center gap-1 sm:gap-1.5 text-emerald-400 text-[10px] sm:text-xs font-mono bg-emerald-900/20 px-2 sm:px-3 py-1 rounded-full border border-emerald-500/30">
-//                         <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> VERIFIED ON-CHAIN
-//                       </span>
+                      
+//                       {isPendingTab ? (
+//                         <span className="flex items-center gap-1 sm:gap-1.5 text-amber-400 text-[10px] sm:text-xs font-mono bg-amber-900/20 px-2 sm:px-3 py-1 rounded-full border border-amber-500/30">
+//                           <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> 1/2 SIGNATURES
+//                         </span>
+//                       ) : (
+//                         <span className="flex items-center gap-1 sm:gap-1.5 text-emerald-400 text-[10px] sm:text-xs font-mono bg-emerald-900/20 px-2 sm:px-3 py-1 rounded-full border border-emerald-500/30">
+//                           <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> VERIFIED ON-CHAIN
+//                         </span>
+//                       )}
+
 //                       {isEncrypted && (
 //                         <span className="flex items-center gap-1 sm:gap-1.5 text-purple-400 text-[10px] sm:text-xs font-mono bg-purple-900/20 px-2 sm:px-3 py-1 rounded-full border border-purple-500/30">
 //                           <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> AES-256
@@ -268,36 +334,40 @@
 //                               <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
 //                               Decrypt & View
 //                             </button>
-//                             <a 
-//                               href={`https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${record.ipfsHash}`}
-//                               target="_blank"
-//                               rel="noopener noreferrer"
-//                               title="View raw encrypted ciphertext on IPFS"
-//                               className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-slate-300 transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-xs font-mono"
-//                             >
-//                               <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-//                               Raw IPFS Hash
-//                             </a>
 //                           </>
 //                         ) : (
 //                           <a 
 //                             href={`https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${record.ipfsHash}`}
 //                             target="_blank"
 //                             rel="noopener noreferrer"
-//                             className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-blue-700/80 hover:bg-blue-600 active:scale-[0.98] text-white transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-blue-500/50 shadow-lg text-[10px] sm:text-xs font-mono"
+//                             className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-slate-300 transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-xs font-mono"
 //                           >
 //                             <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-//                             View Evidence
+//                             Raw IPFS Hash
 //                           </a>
+//                         )}
+
+//                         {/* --- PHASE 5 UI: Co-Sign Button --- */}
+//                         {isPendingTab && (
+//                            <button 
+//                              onClick={() => handleApprove(displayId!)}
+//                              disabled={isUserProposer || approvingId === displayId || !walletAddress}
+//                              className={`flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 active:scale-[0.98] disabled:active:scale-100 transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border text-[10px] sm:text-xs font-mono shadow-lg
+//                                ${isUserProposer ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-amber-700/80 hover:bg-amber-600 border-amber-500/50 text-white'}
+//                              `}
+//                            >
+//                              {approvingId === displayId ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 animate-spin" /> : <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />}
+//                              {isUserProposer ? "Awaiting Co-Signer" : "Co-Sign & Anchor"}
+//                            </button>
 //                         )}
 //                       </div>
 //                     </div>
                     
 //                     <div className="flex flex-col sm:flex-row lg:flex-col gap-3 sm:gap-4 lg:gap-3">
 //                       <div className="flex-1">
-//                         <p className="text-[10px] sm:text-xs text-slate-500 font-mono uppercase tracking-wider mb-1 sm:mb-1.5">Uploader Wallet</p>
-//                         <p className="text-slate-400 text-[10px] sm:text-xs font-mono break-all sm:truncate bg-slate-950/50 px-2 py-1.5 rounded border border-slate-800/50 select-all" title={record.uploader}>
-//                           {record.uploader}
+//                         <p className="text-[10px] sm:text-xs text-slate-500 font-mono uppercase tracking-wider mb-1 sm:mb-1.5">{isPendingTab ? 'Proposed By Wallet' : 'Uploader Wallet'}</p>
+//                         <p className="text-slate-400 text-[10px] sm:text-xs font-mono break-all sm:truncate bg-slate-950/50 px-2 py-1.5 rounded border border-slate-800/50 select-all" title={displayWallet}>
+//                           {displayWallet}
 //                         </p>
 //                       </div>
 
@@ -423,7 +493,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldCheck, Database, Lock, Clock, Fingerprint, Loader2, AlertTriangle, ExternalLink, Link as LinkIcon, Globe, FolderLock, Key, X, Unlock, FileImage, Eye, CheckCircle, Users, PenTool } from "lucide-react";
+import { ShieldCheck, Database, Lock, Clock, Fingerprint, Loader2, AlertTriangle, ExternalLink, Link as LinkIcon, Globe, FolderLock, Key, X, Unlock, FileImage, Eye, CheckCircle, Users, PenTool, FileText } from "lucide-react";
 import { getContract } from "../../utils/ethereum";
 import CryptoJS from "crypto-js";
 
@@ -435,6 +505,7 @@ interface EvidenceRecord {
   uploader?: string;   
   proposer?: string;   
   timestamp: number;
+  viewCount?: number; 
 }
 
 export default function DashboardPage() {
@@ -452,6 +523,13 @@ export default function DashboardPage() {
   const [decryptedDataUrl, setDecryptedDataUrl] = useState<string>("");
   
   const [approvingId, setApprovingId] = useState<number | null>(null);
+
+  // Audit Trail States
+  const [unlockedEvidence, setUnlockedEvidence] = useState<Set<number>>(new Set());
+  const [accessLoadingId, setAccessLoadingId] = useState<number | null>(null);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<{viewer: string, timestamp: number}[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
     fetchEvidence();
@@ -495,15 +573,20 @@ export default function DashboardPage() {
       }
 
       const data = await contract.getAllEvidence();
-      const formattedData = data.map((item: any) => ({
-        evidenceId: Number(item.evidenceId),
-        ipfsHash: item.ipfsHash,
-        fileHash: item.fileHash,
-        uploader: item.uploader,
-        timestamp: Number(item.timestamp),
-      })).reverse(); 
+      const formattedData = await Promise.all(data.map(async (item: any) => {
+        const evId = Number(item.evidenceId);
+        const logs = await (contract as any).getAccessLogs(evId);
 
-      // 2. Fetch Pending Ledger (Phase 5)
+        return {
+          evidenceId: evId,
+          ipfsHash: item.ipfsHash,
+          fileHash: item.fileHash,
+          uploader: item.uploader,
+          timestamp: Number(item.timestamp),
+          viewCount: logs.length
+        };
+      }));
+
       const pendingData = await (contract as any).getPendingEvidence();
       const formattedPending = pendingData.map((item: any) => ({
         pendingId: Number(item.pendingId),
@@ -513,7 +596,7 @@ export default function DashboardPage() {
         timestamp: Number(item.timestamp),
       })).reverse();
 
-      setRecords(formattedData);
+      setRecords(formattedData.reverse());
       setPendingRecords(formattedPending);
       setLoading(false);
     } catch (err: any) {
@@ -523,11 +606,48 @@ export default function DashboardPage() {
     }
   };
 
+  // --- UPDATED: Gatekeeper Access Request ---
+  const requestAccess = async (evidenceId: number) => {
+    setAccessLoadingId(evidenceId);
+    try {
+      const contract = await getContract();
+      if (!contract) throw new Error("Contract not connected");
+      
+      const tx = await (contract as any).logAccess(evidenceId);
+      await tx.wait();
+
+      setUnlockedEvidence(prev => new Set(prev).add(evidenceId));
+      await fetchEvidence(); 
+    } catch (error) {
+      console.error("Access Request Failed:", error);
+      alert("Failed to sign the logbook. Ensure your wallet is connected and you did not reject the transaction.");
+    }
+    setAccessLoadingId(null);
+  };
+
+  const openAuditLog = async (evidenceId: number) => {
+    setShowAuditModal(true);
+    setAuditLoading(true);
+    try {
+        const contract = await getContract();
+        const logs = await (contract as any).getAccessLogs(evidenceId);
+        
+        const formattedLogs = logs.map((l: any) => ({
+            viewer: l.viewer,
+            timestamp: Number(l.timestamp)
+        })).reverse(); 
+        
+        setAuditLogs(formattedLogs);
+    } catch (error) {
+        console.error("Failed to fetch logs:", error);
+    }
+    setAuditLoading(false);
+  };
+
   const handleApprove = async (pendingId: number) => {
     setApprovingId(pendingId);
     try {
       const contract = await getContract();
-      // --- TS FIX: Ensure contract exists before calling methods ---
       if (!contract) throw new Error("Smart contract connection failed.");
       
       const transaction = await (contract as any).approveEvidence(pendingId);
@@ -700,6 +820,9 @@ export default function DashboardPage() {
             const displayWallet = isPendingTab ? record.proposer : record.uploader;
             const isUserProposer = isPendingTab && record.proposer?.toLowerCase() === walletAddress;
 
+            // Ensures that once signed for access, the UI unlocks
+            const isUnlocked = isPendingTab || unlockedEvidence.has(displayId!);
+
             return (
               <div key={displayId} className={`bg-slate-900/40 border ${isPendingTab ? 'border-amber-900/50 hover:border-amber-500/30' : 'border-slate-800 hover:border-blue-500/30'} rounded-xl p-4 sm:p-6 shadow-lg transition-all duration-300 group relative overflow-hidden`}>
                 <div className="flex flex-col lg:flex-row justify-between gap-5 sm:gap-6 relative z-10">
@@ -726,6 +849,15 @@ export default function DashboardPage() {
                           <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> AES-256
                         </span>
                       )}
+
+                      {!isPendingTab && record.viewCount !== undefined && (
+                        <button 
+                          onClick={() => openAuditLog(record.evidenceId!)}
+                          className="flex items-center gap-1 sm:gap-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-900/40 text-[10px] sm:text-xs font-mono bg-blue-900/20 px-2 sm:px-3 py-1 rounded-full border border-blue-500/30 cursor-pointer transition-colors"
+                        >
+                          <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" /> {record.viewCount} Views (Audit Log)
+                        </button>
+                      )}
                     </div>
                     
                     <div>
@@ -747,29 +879,53 @@ export default function DashboardPage() {
                       </p>
                       
                       <div className="flex flex-col xl:flex-row gap-2">
-                        {isEncrypted ? (
-                          <>
-                            <button 
-                              onClick={() => setSelectedRecord(record)}
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-emerald-700/80 hover:bg-emerald-600 active:scale-[0.98] text-white transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-emerald-500/50 shadow-lg text-[10px] sm:text-xs font-mono"
-                            >
-                              <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                              Decrypt & View
-                            </button>
-                          </>
-                        ) : (
-                          <a 
-                            href={`https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${record.ipfsHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-slate-300 transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-xs font-mono"
+                        {/* --- UPDATED: General Public Access Request Button --- */}
+                        {!isUnlocked ? (
+                          <button 
+                            onClick={() => requestAccess(displayId!)}
+                            disabled={accessLoadingId === displayId || !walletAddress}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-blue-700/80 hover:bg-blue-600 active:scale-[0.98] disabled:active:scale-100 text-white transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-blue-500/50 shadow-lg text-[10px] sm:text-xs font-mono"
+                            title={!walletAddress ? "Connect wallet to view evidence" : "Sign logbook to reveal evidence"}
                           >
-                            <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                            Raw IPFS Hash
-                          </a>
+                            {accessLoadingId === displayId ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 animate-spin" /> : <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />}
+                            Sign Logbook to View
+                          </button>
+                        ) : (
+                          // Original View Logic
+                          isEncrypted ? (
+                            <>
+                              <button 
+                                onClick={() => setSelectedRecord(record)}
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-emerald-700/80 hover:bg-emerald-600 active:scale-[0.98] text-white transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-emerald-500/50 shadow-lg text-[10px] sm:text-xs font-mono"
+                              >
+                                <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                Decrypt & View
+                              </button>
+                              <a 
+                                href={`https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${record.ipfsHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="View raw encrypted ciphertext on IPFS"
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-slate-300 transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-xs font-mono"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                Raw IPFS Hash
+                              </a>
+                            </>
+                          ) : (
+                            <a 
+                              href={`https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${record.ipfsHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-blue-700/80 hover:bg-blue-600 active:scale-[0.98] text-white transition-all duration-200 px-3 py-2 sm:py-2.5 rounded-lg border border-blue-500/50 shadow-lg text-[10px] sm:text-xs font-mono"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                              View Evidence
+                            </a>
+                          )
                         )}
 
-                        {/* --- PHASE 5 UI: Co-Sign Button --- */}
+                        {/* Co-Sign Button */}
                         {isPendingTab && (
                            <button 
                              onClick={() => handleApprove(displayId!)}
@@ -811,7 +967,55 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* --- DECRYPTION MODAL --- */}
+      {/* --- UPDATED: AUDIT LOG MODAL (Wider width and more spacing) --- */}
+      {showAuditModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0F172A]/90 backdrop-blur-md p-3 sm:p-4 animate-fade-in-up">
+          {/* Made the max-width larger (max-w-3xl) for a cleaner layout */}
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-3xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+            
+            <div className="bg-slate-950 px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-800 flex justify-between items-center shrink-0">
+              <h3 className="text-white font-mono text-sm sm:text-base font-bold flex items-center gap-2">
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 shrink-0" />
+                Chain of Custody Audit Log
+              </h3>
+              <button onClick={() => setShowAuditModal(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg active:scale-95">
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-grow">
+              {auditLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-blue-400">
+                  <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 animate-spin mb-3 sm:mb-4" />
+                  <p className="font-mono text-[10px] sm:text-sm tracking-widest uppercase text-center">Querying Blockchain Records...</p>
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 font-mono text-xs sm:text-sm">
+                  No investigator has officially accessed this evidence yet.
+                </div>
+              ) : (
+                <div className="space-y-3 sm:space-y-4">
+                  {auditLogs.map((log, index) => (
+                    // Added more padding and gap for cleaner spacing
+                    <div key={index} className="bg-slate-950 border border-slate-800 p-4 sm:p-5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-8 transition-colors hover:border-slate-700">
+                      <div className="flex-1">
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-mono uppercase tracking-wider mb-1.5">Viewer Wallet Address</p>
+                        <p className="text-blue-400 text-xs sm:text-sm font-mono break-all select-all">{log.viewer}</p>
+                      </div>
+                      <div className="sm:text-right shrink-0">
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-mono uppercase tracking-wider mb-1.5">Access Timestamp</p>
+                        <p className="text-slate-300 text-xs sm:text-sm font-mono">{formatDate(log.timestamp)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- EXISTING DECRYPTION MODAL --- */}
       {selectedRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/90 backdrop-blur-md p-3 sm:p-4 animate-fade-in-up">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]">

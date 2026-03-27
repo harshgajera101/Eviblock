@@ -24,6 +24,16 @@ import type {
 } from "./common";
 
 export declare namespace EvidenceRegistry {
+  export type AccessLogStruct = {
+    viewer: AddressLike;
+    timestamp: BigNumberish;
+  };
+
+  export type AccessLogStructOutput = [viewer: string, timestamp: bigint] & {
+    viewer: string;
+    timestamp: bigint;
+  };
+
   export type EvidenceStruct = {
     evidenceId: BigNumberish;
     ipfsHash: string;
@@ -78,14 +88,17 @@ export declare namespace EvidenceRegistry {
 export interface EvidenceRegistryInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "accessLogs"
       | "addEvidence"
       | "approveEvidence"
       | "checkIsInvestigator"
+      | "getAccessLogs"
       | "getAllEvidence"
       | "getPendingEvidence"
       | "grantInvestigator"
       | "hasApproved"
       | "investigators"
+      | "logAccess"
       | "pendingCount"
       | "pendingRecords"
       | "proposeEvidence"
@@ -95,6 +108,7 @@ export interface EvidenceRegistryInterface extends Interface {
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "EvidenceAccessed"
       | "EvidenceAdded"
       | "EvidenceApproved"
       | "EvidenceProposed"
@@ -102,6 +116,10 @@ export interface EvidenceRegistryInterface extends Interface {
       | "RoleRevoked"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "accessLogs",
+    values: [BigNumberish, BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "addEvidence",
     values: [string, string]
@@ -113,6 +131,10 @@ export interface EvidenceRegistryInterface extends Interface {
   encodeFunctionData(
     functionFragment: "checkIsInvestigator",
     values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getAccessLogs",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getAllEvidence",
@@ -135,6 +157,10 @@ export interface EvidenceRegistryInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "logAccess",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "pendingCount",
     values?: undefined
   ): string;
@@ -155,6 +181,7 @@ export interface EvidenceRegistryInterface extends Interface {
     values?: undefined
   ): string;
 
+  decodeFunctionResult(functionFragment: "accessLogs", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "addEvidence",
     data: BytesLike
@@ -165,6 +192,10 @@ export interface EvidenceRegistryInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "checkIsInvestigator",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getAccessLogs",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -187,6 +218,7 @@ export interface EvidenceRegistryInterface extends Interface {
     functionFragment: "investigators",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "logAccess", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "pendingCount",
     data: BytesLike
@@ -204,6 +236,19 @@ export interface EvidenceRegistryInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "superAdmin", data: BytesLike): Result;
+}
+
+export namespace EvidenceAccessedEvent {
+  export type InputTuple = [evidenceId: BigNumberish, viewer: AddressLike];
+  export type OutputTuple = [evidenceId: bigint, viewer: string];
+  export interface OutputObject {
+    evidenceId: bigint;
+    viewer: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace EvidenceAddedEvent {
@@ -347,6 +392,12 @@ export interface EvidenceRegistry extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  accessLogs: TypedContractMethod<
+    [arg0: BigNumberish, arg1: BigNumberish],
+    [[string, bigint] & { viewer: string; timestamp: bigint }],
+    "view"
+  >;
+
   addEvidence: TypedContractMethod<
     [_ipfsHash: string, _fileHash: string],
     [void],
@@ -362,6 +413,12 @@ export interface EvidenceRegistry extends BaseContract {
   checkIsInvestigator: TypedContractMethod<
     [_account: AddressLike],
     [boolean],
+    "view"
+  >;
+
+  getAccessLogs: TypedContractMethod<
+    [_evidenceId: BigNumberish],
+    [EvidenceRegistry.AccessLogStructOutput[]],
     "view"
   >;
 
@@ -390,6 +447,12 @@ export interface EvidenceRegistry extends BaseContract {
   >;
 
   investigators: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  logAccess: TypedContractMethod<
+    [_evidenceId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
   pendingCount: TypedContractMethod<[], [bigint], "view">;
 
@@ -428,6 +491,13 @@ export interface EvidenceRegistry extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "accessLogs"
+  ): TypedContractMethod<
+    [arg0: BigNumberish, arg1: BigNumberish],
+    [[string, bigint] & { viewer: string; timestamp: bigint }],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "addEvidence"
   ): TypedContractMethod<
     [_ipfsHash: string, _fileHash: string],
@@ -440,6 +510,13 @@ export interface EvidenceRegistry extends BaseContract {
   getFunction(
     nameOrSignature: "checkIsInvestigator"
   ): TypedContractMethod<[_account: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "getAccessLogs"
+  ): TypedContractMethod<
+    [_evidenceId: BigNumberish],
+    [EvidenceRegistry.AccessLogStructOutput[]],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "getAllEvidence"
   ): TypedContractMethod<[], [EvidenceRegistry.EvidenceStructOutput[]], "view">;
@@ -463,6 +540,9 @@ export interface EvidenceRegistry extends BaseContract {
   getFunction(
     nameOrSignature: "investigators"
   ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "logAccess"
+  ): TypedContractMethod<[_evidenceId: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "pendingCount"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -497,6 +577,13 @@ export interface EvidenceRegistry extends BaseContract {
     nameOrSignature: "superAdmin"
   ): TypedContractMethod<[], [string], "view">;
 
+  getEvent(
+    key: "EvidenceAccessed"
+  ): TypedContractEvent<
+    EvidenceAccessedEvent.InputTuple,
+    EvidenceAccessedEvent.OutputTuple,
+    EvidenceAccessedEvent.OutputObject
+  >;
   getEvent(
     key: "EvidenceAdded"
   ): TypedContractEvent<
@@ -534,6 +621,17 @@ export interface EvidenceRegistry extends BaseContract {
   >;
 
   filters: {
+    "EvidenceAccessed(uint256,address)": TypedContractEvent<
+      EvidenceAccessedEvent.InputTuple,
+      EvidenceAccessedEvent.OutputTuple,
+      EvidenceAccessedEvent.OutputObject
+    >;
+    EvidenceAccessed: TypedContractEvent<
+      EvidenceAccessedEvent.InputTuple,
+      EvidenceAccessedEvent.OutputTuple,
+      EvidenceAccessedEvent.OutputObject
+    >;
+
     "EvidenceAdded(uint256,string,string,address)": TypedContractEvent<
       EvidenceAddedEvent.InputTuple,
       EvidenceAddedEvent.OutputTuple,

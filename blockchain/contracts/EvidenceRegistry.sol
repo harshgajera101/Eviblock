@@ -27,19 +27,31 @@ contract EvidenceRegistry {
         bool finalized;
     }
 
-    // --- NEW PHASE 5: State Variables ---
+    // --- NEW: Audit Trail Struct ---
+    struct AccessLog {
+        address viewer;
+        uint256 timestamp;
+    }
+
+    // --- State Variables ---
     uint256 public pendingCount;
     mapping(uint256 => PendingRecord) public pendingRecords;
     mapping(uint256 => mapping(address => bool)) public hasApproved;
+    
+    // --- NEW: Maps an Evidence ID to its viewing history ---
+    mapping(uint256 => AccessLog[]) public accessLogs;
 
     // Events for Audit Trail
     event EvidenceAdded(uint256 indexed evidenceId, string ipfsHash, string fileHash, address indexed uploader);
     event RoleGranted(string role, address indexed account);
     event RoleRevoked(string role, address indexed account);
     
-    // --- NEW PHASE 5: Events ---
+    // --- PHASE 5: Events ---
     event EvidenceProposed(uint256 indexed pendingId, string ipfsHash, string fileHash, address indexed proposer);
     event EvidenceApproved(uint256 indexed pendingId, address indexed approver, uint256 currentApprovals);
+
+    // --- NEW: Access Log Event ---
+    event EvidenceAccessed(uint256 indexed evidenceId, address indexed viewer);
 
     // Security Modifiers
     modifier onlyAdmin() {
@@ -83,7 +95,21 @@ contract EvidenceRegistry {
         return ledger;
     }
 
-    // --- NEW PHASE 5: MULTI-SIG MANAGEMENT ---
+    // --- UPDATED: AUDIT TRAIL MANAGEMENT (Accessible by ANY wallet) ---
+    function logAccess(uint256 _evidenceId) public {
+        require(_evidenceId > 0 && _evidenceId <= ledger.length, "Security Alert: Record does not exist.");
+        
+        // Push the viewer's address and the exact blockchain time into the ledger's logbook
+        accessLogs[_evidenceId].push(AccessLog(msg.sender, block.timestamp));
+        
+        emit EvidenceAccessed(_evidenceId, msg.sender);
+    }
+
+    function getAccessLogs(uint256 _evidenceId) public view returns (AccessLog[] memory) {
+        return accessLogs[_evidenceId];
+    }
+
+    // --- PHASE 5: MULTI-SIG MANAGEMENT ---
     function proposeEvidence(string memory _ipfsHash, string memory _fileHash) public onlyInvestigator {
         pendingCount++;
         pendingRecords[pendingCount] = PendingRecord({
